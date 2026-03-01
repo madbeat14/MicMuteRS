@@ -326,7 +326,7 @@ impl eframe::App for MicMuteApp {
             let response = egui::CentralPanel::default()
                 .frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT))
                 .show(ctx, |ui| {
-                    ui.horizontal(|ui| {
+                    ui.horizontal_centered(|ui| {
                         ui.spacing_mut().item_spacing.x = 4.0;
                         let opacity_tint = egui::Color32::from_white_alpha((self.config.persistent_overlay.opacity as f32 / 100.0 * 255.0) as u8);
                         let is_dark_theme = match self.config.persistent_overlay.theme.as_str() {
@@ -335,32 +335,34 @@ impl eframe::App for MicMuteApp {
                             _ => !self.is_light_theme, // Auto case
                         };
 
-                        if self.is_muted {
-                            let img = if !is_dark_theme {
-                                egui::include_image!("../assets/mic_muted_black.svg")
+                        let scale_str = format!("{scale}");
+                        let (uri, bytes) = if self.is_muted {
+                            if !is_dark_theme {
+                                (format!("bytes://mic_muted_black_{}.svg", scale_str), include_bytes!("../assets/mic_muted_black.svg").as_slice())
                             } else {
-                                egui::include_image!("../assets/mic_muted_white.svg")
-                            };
-                            ui.add(egui::Image::new(img).max_height(scale).tint(opacity_tint));
-                        } else {
-                            let img = if !is_dark_theme {
-                                egui::include_image!("../assets/mic_black.svg")
-                            } else {
-                                egui::include_image!("../assets/mic_white.svg")
-                            };
-                            ui.add(egui::Image::new(img).max_height(scale).tint(opacity_tint));
-                            
-                            // VU Meter
-                            if self.config.persistent_overlay.show_vu {
-                                let (rect, _response) = ui.allocate_exact_size(egui::vec2(10.0, scale), egui::Sense::hover());
-                                let threshold = self.config.persistent_overlay.sensitivity as f32 / 100.0;
-                                let color = if self.peak_level > threshold {
-                                    egui::Color32::GREEN
-                                } else {
-                                    egui::Color32::TRANSPARENT
-                                };
-                                ui.painter().rect_filled(rect, 5.0, color);
+                                (format!("bytes://mic_muted_white_{}.svg", scale_str), include_bytes!("../assets/mic_muted_white.svg").as_slice())
                             }
+                        } else {
+                            if !is_dark_theme {
+                                (format!("bytes://mic_black_{}.svg", scale_str), include_bytes!("../assets/mic_black.svg").as_slice())
+                            } else {
+                                (format!("bytes://mic_white_{}.svg", scale_str), include_bytes!("../assets/mic_white.svg").as_slice())
+                            }
+                        };
+                        
+                        ui.add(egui::Image::from_bytes(uri, bytes).max_height(scale).tint(opacity_tint));
+                            
+                        // VU Meter
+                        if !self.is_muted && self.config.persistent_overlay.show_vu {
+                            let dot_size = 10.0;
+                            let (rect, _response) = ui.allocate_exact_size(egui::vec2(dot_size, dot_size), egui::Sense::hover());
+                            let threshold = self.config.persistent_overlay.sensitivity as f32 / 100.0;
+                            let color = if self.peak_level > threshold {
+                                egui::Color32::GREEN
+                            } else {
+                                egui::Color32::TRANSPARENT
+                            };
+                            ui.painter().circle_filled(rect.center(), dot_size / 2.0, color);
                         }
                     });
                 }).response;
@@ -682,20 +684,22 @@ impl eframe::App for MicMuteApp {
                         .frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT).inner_margin(10.0))
                         .show(ctx, |ui| {
                             ui.centered_and_justified(|ui| {
-                                let img = if self.is_muted {
+                                let size_f = self.config.osd.size as f32;
+                                let size_str = format!("{size_f}");
+                                let (uri, bytes) = if self.is_muted {
                                     if self.is_light_theme {
-                                        egui::include_image!("../assets/mic_muted_black.svg")
+                                        (format!("bytes://osd_mic_muted_black_{}.svg", size_str), include_bytes!("../assets/mic_muted_black.svg").as_slice())
                                     } else {
-                                        egui::include_image!("../assets/mic_muted_white.svg")
+                                        (format!("bytes://osd_mic_muted_white_{}.svg", size_str), include_bytes!("../assets/mic_muted_white.svg").as_slice())
                                     }
                                 } else {
                                     if self.is_light_theme {
-                                        egui::include_image!("../assets/mic_black.svg")
+                                        (format!("bytes://osd_mic_black_{}.svg", size_str), include_bytes!("../assets/mic_black.svg").as_slice())
                                     } else {
-                                        egui::include_image!("../assets/mic_white.svg")
+                                        (format!("bytes://osd_mic_white_{}.svg", size_str), include_bytes!("../assets/mic_white.svg").as_slice())
                                     }
                                 };
-                                ui.add(egui::Image::new(img).max_height(self.config.osd.size as f32 * 0.5));
+                                ui.add(egui::Image::from_bytes(uri, bytes).max_height(size_f * 0.5));
                             });
                         });
                 });
