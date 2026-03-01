@@ -3,6 +3,14 @@ use crate::config::AppConfig;
 use std::time::{Instant, Duration};
 use std::sync::mpsc;
 use std::thread;
+// Use windows-sys for the transparency fix to avoid version hell with eframe
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+    FindWindowW, GetWindowLongW, SetWindowLongW, SetLayeredWindowAttributes,
+    GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TRANSPARENT, LWA_COLORKEY, LWA_ALPHA,
+    SetWindowPos, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SWP_FRAMECHANGED
+};
+use windows_sys::Win32::UI::Controls::MARGINS;
+use windows_sys::Win32::Graphics::Dwm::DwmExtendFrameIntoClientArea;
 
 pub struct MicMuteApp {
     show_settings: bool,
@@ -62,6 +70,7 @@ impl MicMuteApp {
         let is_muted = audio.is_muted().unwrap_or(false);
         let is_light_theme = crate::utils::is_system_light_theme();
         tray.set_icon_state(is_muted, is_light_theme);
+
         Self {
             show_settings: false,
             audio,
@@ -90,6 +99,20 @@ impl MicMuteApp {
 
 impl eframe::App for MicMuteApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Set visuals based on current viewport
+        let vp_id = ctx.viewport_id();
+        let is_osd = vp_id == egui::ViewportId::from_hash_of("osd_v2");
+        let is_overlay = vp_id == egui::ViewportId::ROOT;
+
+        // We set visuals per-viewport to avoid conflicts between transparent and opaque windows
+        if is_osd || is_overlay {
+            ctx.set_visuals(egui::Visuals {
+                window_fill: egui::Color32::TRANSPARENT,
+                panel_fill: egui::Color32::TRANSPARENT,
+                ..if self.is_light_theme { egui::Visuals::light() } else { egui::Visuals::dark() }
+            });
+        }
+
         if let Some(vk) = self.hotkeys.try_recv_record() {
             if let Some(key_name) = &self.recording_key {
                 if let Some(cfg) = self.config.hotkey.get_mut(key_name) {
@@ -189,11 +212,25 @@ impl eframe::App for MicMuteApp {
 
         if let Some(vk) = self.hotkeys.try_recv() {
             let mut action = None;
-            for (key, cfg) in &self.config.hotkey {
-                let cfg_vk = cfg.get("vk").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-                if cfg_vk == vk {
-                    action = Some(key.as_str());
-                    break;
+            let current_mode = self.config.hotkey_mode.as_str();
+            
+            if current_mode == "toggle" {
+                if let Some(cfg) = self.config.hotkey.get("toggle") {
+                    let cfg_vk = cfg.get("vk").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                    if cfg_vk == vk {
+                        action = Some("toggle");
+                    }
+                }
+            } else {
+                // Separate mode
+                for key in ["mute", "unmute"] {
+                    if let Some(cfg) = self.config.hotkey.get(key) {
+                        let cfg_vk = cfg.get("vk").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                        if cfg_vk == vk {
+                            action = Some(key);
+                            break;
+                        }
+                    }
                 }
             }
             
@@ -335,18 +372,25 @@ impl eframe::App for MicMuteApp {
                             _ => !self.is_light_theme, // Auto case
                         };
 
-                        let scale_str = format!("{scale}");
+                        let replace_svg_size = |bytes: &[u8], size: f32| -> Vec<u8> {
+                            String::from_utf8_lossy(bytes)
+                                .replace("width=\"800px\"", &format!("width=\"{:.0}px\"", size))
+                                .replace("height=\"800px\"", &format!("height=\"{:.0}px\"", size))
+                                .into_bytes()
+                        };
+
+                        let scale_str = format!("{}", scale.round() as u32);
                         let (uri, bytes) = if self.is_muted {
                             if !is_dark_theme {
-                                (format!("bytes://mic_muted_black_{}.svg", scale_str), include_bytes!("../assets/mic_muted_black.svg").as_slice())
+                                (format!("bytes://mic_muted_black_{}.svg", scale_str), replace_svg_size(include_bytes!("../assets/mic_muted_black.svg"), scale))
                             } else {
-                                (format!("bytes://mic_muted_white_{}.svg", scale_str), include_bytes!("../assets/mic_muted_white.svg").as_slice())
+                                (format!("bytes://mic_muted_white_{}.svg", scale_str), replace_svg_size(include_bytes!("../assets/mic_muted_white.svg"), scale))
                             }
                         } else {
                             if !is_dark_theme {
-                                (format!("bytes://mic_black_{}.svg", scale_str), include_bytes!("../assets/mic_black.svg").as_slice())
+                                (format!("bytes://mic_black_{}.svg", scale_str), replace_svg_size(include_bytes!("../assets/mic_black.svg"), scale))
                             } else {
-                                (format!("bytes://mic_white_{}.svg", scale_str), include_bytes!("../assets/mic_white.svg").as_slice())
+                                (format!("bytes://mic_white_{}.svg", scale_str), replace_svg_size(include_bytes!("../assets/mic_white.svg"), scale))
                             }
                         };
                         
@@ -400,7 +444,8 @@ impl eframe::App for MicMuteApp {
                 
                 ui.horizontal(|ui| {
                     ui.selectable_value(&mut self.show_settings, true, "General");
-                    // Simple text-based tab simulation since we don't have an enum yet, we'll just show them sequentially with CollapsingHeaders for now
+                    // Ensure visuals are set for the settings window specifically
+                    ctx.set_visuals(if self.is_light_theme { egui::Visuals::light() } else { egui::Visuals::dark() });
                 });
                 ui.separator();
 
@@ -504,18 +549,71 @@ impl eframe::App for MicMuteApp {
                 });
 
                 egui::CollapsingHeader::new("Hotkeys (VK Codes)").default_open(true).show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("Hotkey Mode:");
+                        if ui.radio_value(&mut self.config.hotkey_mode, "toggle".to_string(), "Single Toggle Key").changed() {
+                            config_changed = true;
+                        }
+                        if ui.radio_value(&mut self.config.hotkey_mode, "separate".to_string(), "Separate Mute/Unmute Keys").changed() {
+                            config_changed = true;
+                        }
+                    });
+                    ui.separator();
+
                     let mut update_hotkeys = false;
                     let get_vk = |val: &serde_json::Value| -> u32 {
                         val.get("vk").and_then(|v| v.as_u64()).unwrap_or(0) as u32
                     };
-                    for key in ["toggle", "mute", "unmute"] {
+
+                    let keys_to_show = if self.config.hotkey_mode == "toggle" {
+                        vec!["toggle"]
+                    } else {
+                        vec!["mute", "unmute"]
+                    };
+
+                    for key in keys_to_show {
                         ui.horizontal(|ui| {
-                            ui.label(format!("{} VK Code:", key));
-                            let current_vk = self.config.hotkey.get(key).map(|c| get_vk(c)).unwrap_or(0);
-                            ui.label(format!("{}", current_vk));
+                            let label = match key {
+                                "toggle" => "Toggle Hotkey:",
+                                "mute" => "Mute Hotkey:",
+                                "unmute" => "Unmute Hotkey:",
+                                _ => "Hotkey:",
+                            };
+                            ui.label(label);
                             
+                            let current_vk = self.config.hotkey.get(key).map(|c| get_vk(c)).unwrap_or(0);
+                            let key_name = crate::utils::vk_to_string(current_vk);
+                            
+                            // Dropdown for common keys
+                            let common_keys = [
+                                (0xB3, "Media Play/Pause"),
+                                (0x70, "F1"), (0x71, "F2"), (0x72, "F3"), (0x73, "F4"),
+                                (0x74, "F5"), (0x75, "F6"), (0x76, "F7"), (0x77, "F8"),
+                                (0x78, "F9"), (0x79, "F10"), (0x7A, "F11"), (0x7B, "F12"),
+                                (0x20, "Space"), (0x0D, "Enter"), (0x09, "Tab"),
+                                (0xAD, "Volume Mute"), (0xAE, "Volume Down"), (0xAF, "Volume Up")
+                            ];
+                            
+                            egui::ComboBox::from_id_salt(format!("combo_{}", key))
+                                .selected_text(&key_name)
+                                .width(150.0)
+                                .show_ui(ui, |ui| {
+                                    for (vk, name) in common_keys {
+                                        if ui.selectable_label(current_vk == vk, name).clicked() {
+                                            if let Some(cfg_mut) = self.config.hotkey.get_mut(key) {
+                                                if let Some(obj) = cfg_mut.as_object_mut() {
+                                                    obj.insert("vk".to_string(), serde_json::json!(vk));
+                                                    obj.insert("name".to_string(), serde_json::json!(name));
+                                                }
+                                                update_hotkeys = true;
+                                                config_changed = true;
+                                            }
+                                        }
+                                    }
+                                });
+
                             let is_recording = self.recording_key.as_deref() == Some(key);
-                            let btn_text = if is_recording { "Press a key..." } else { "Record" };
+                            let btn_text = if is_recording { "..." } else { "Record" };
                             
                             if ui.button(btn_text).clicked() && !is_recording {
                                 self.recording_key = Some(key.to_string());
@@ -526,6 +624,7 @@ impl eframe::App for MicMuteApp {
                                 if let Some(cfg_mut) = self.config.hotkey.get_mut(key) {
                                     if let Some(obj) = cfg_mut.as_object_mut() {
                                         obj.insert("vk".to_string(), serde_json::json!(0));
+                                        obj.insert("name".to_string(), serde_json::json!("None"));
                                     }
                                     update_hotkeys = true;
                                     config_changed = true;
@@ -533,16 +632,20 @@ impl eframe::App for MicMuteApp {
                             }
                         });
                     }
-                    if update_hotkeys {
+                    if update_hotkeys || config_changed {
                         let mut vks = Vec::new();
-                        if let Some(h) = self.config.hotkey.get("toggle") { 
-                            let vk = get_vk(h); if vk != 0 { vks.push(vk); } 
-                        }
-                        if let Some(h) = self.config.hotkey.get("mute") { 
-                            let vk = get_vk(h); if vk != 0 { vks.push(vk); } 
-                        }
-                        if let Some(h) = self.config.hotkey.get("unmute") { 
-                            let vk = get_vk(h); if vk != 0 { vks.push(vk); } 
+                        let mode = self.config.hotkey_mode.as_str();
+                        if mode == "toggle" {
+                            if let Some(h) = self.config.hotkey.get("toggle") { 
+                                let vk = get_vk(h); if vk != 0 { vks.push(vk); } 
+                            }
+                        } else {
+                            if let Some(h) = self.config.hotkey.get("mute") { 
+                                let vk = get_vk(h); if vk != 0 { vks.push(vk); } 
+                            }
+                            if let Some(h) = self.config.hotkey.get("unmute") { 
+                                let vk = get_vk(h); if vk != 0 { vks.push(vk); } 
+                            }
                         }
                         self.hotkeys.set_hotkeys(vks);
                     }
@@ -615,6 +718,10 @@ impl eframe::App for MicMuteApp {
                             config_changed |= ui.add(egui::Slider::new(&mut self.config.osd.size, 50..=300).suffix(" px")).changed();
                         });
                         ui.horizontal(|ui| {
+                            ui.label("Opacity:");
+                            config_changed |= ui.add(egui::Slider::new(&mut self.config.osd.opacity, 10..=100).suffix("%")).changed();
+                        });
+                        ui.horizontal(|ui| {
                             ui.label("Position:");
                             let positions = ["Top", "Center", "Bottom"];
                             egui::ComboBox::from_id_salt("osd_pos")
@@ -669,7 +776,7 @@ impl eframe::App for MicMuteApp {
                 }
 
                 let osd_builder = egui::ViewportBuilder::default()
-                    .with_title("MicMute OSD V2")
+                    .with_title("MicMute_OSD_Viewport_Unique_ID")
                     .with_inner_size([size_f, size_f])
                     .with_position(osd_pos)
                     .with_transparent(true)
@@ -680,23 +787,76 @@ impl eframe::App for MicMuteApp {
 
                 ctx.show_viewport_immediate(osd_id, osd_builder, |ctx, _class| {
                     ctx.send_viewport_cmd(egui::ViewportCommand::Transparent(true));
+                    
+                    // Windows-specific transparency force for Glow secondary viewports
+                    // Using Chroma Key (black = transparent) as a fallback for Glow's limited multi-window alpha
+                    unsafe {
+                        let title: Vec<u16> = "MicMute_OSD_Viewport_Unique_ID".encode_utf16().chain(std::iter::once(0)).collect();
+                        let hwnd = FindWindowW(std::ptr::null(), title.as_ptr());
+                        
+                        if hwnd != std::ptr::null_mut() {
+                            let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE);
+                            if (ex_style & WS_EX_LAYERED as i32) == 0 {
+                                // Enable layered window and make it transparent (mouse-through)
+                                let _ = SetWindowLongW(hwnd, GWL_EXSTYLE, ex_style | WS_EX_LAYERED as i32 | WS_EX_TRANSPARENT as i32);
+                                
+                                // Set pure black (0x000000) as the transparent color key
+                                // Using ONLY LWA_COLORKEY to avoid alpha blending interference with Glow
+                                let _ = SetLayeredWindowAttributes(hwnd, 0x000000, 255, LWA_COLORKEY);
+
+                                let margins = MARGINS {
+                                    cxLeftWidth: -1,
+                                    cxRightWidth: -1,
+                                    cyTopHeight: -1,
+                                    cyBottomHeight: -1,
+                                };
+                                let _ = DwmExtendFrameIntoClientArea(hwnd, &margins);
+                                
+                                // Force a repaint/update of the window styles
+                                SetWindowPos(
+                                    hwnd, std::ptr::null_mut(), 0, 0, 0, 0,
+                                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED
+                                );
+                            }
+                        }
+                    }
+
+                    let bg_alpha = (255.0 * (self.config.osd.opacity as f32 / 100.0)) as u8;
+                    let bg_color = if self.is_light_theme {
+                        egui::Color32::from_rgba_unmultiplied(225, 225, 225, bg_alpha)
+                    } else {
+                        egui::Color32::from_rgba_unmultiplied(30, 30, 30, bg_alpha)
+                    };
+                    
                     egui::CentralPanel::default()
-                        .frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT).inner_margin(10.0))
+                        .frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT))
                         .show(ctx, |ui| {
+                            // Draw rounded background slightly inset to avoid native window edge artifacts
+                            let rect = ui.max_rect().shrink(2.0);
+                            ui.painter().rect_filled(rect, 15.0, bg_color);
+                            
                             ui.centered_and_justified(|ui| {
                                 let size_f = self.config.osd.size as f32;
-                                let size_str = format!("{size_f}");
+                                let size_str = format!("{}", size_f.round() as u32);
+                                
+                                let replace_svg_size = |bytes: &[u8], size: f32| -> Vec<u8> {
+                                    String::from_utf8_lossy(bytes)
+                                        .replace("width=\"800px\"", &format!("width=\"{:.0}px\"", size))
+                                        .replace("height=\"800px\"", &format!("height=\"{:.0}px\"", size))
+                                        .into_bytes()
+                                };
+
                                 let (uri, bytes) = if self.is_muted {
                                     if self.is_light_theme {
-                                        (format!("bytes://osd_mic_muted_black_{}.svg", size_str), include_bytes!("../assets/mic_muted_black.svg").as_slice())
+                                        (format!("bytes://osd_mic_muted_black_{}.svg", size_str), replace_svg_size(include_bytes!("../assets/mic_muted_black.svg"), size_f))
                                     } else {
-                                        (format!("bytes://osd_mic_muted_white_{}.svg", size_str), include_bytes!("../assets/mic_muted_white.svg").as_slice())
+                                        (format!("bytes://osd_mic_muted_white_{}.svg", size_str), replace_svg_size(include_bytes!("../assets/mic_muted_white.svg"), size_f))
                                     }
                                 } else {
                                     if self.is_light_theme {
-                                        (format!("bytes://osd_mic_black_{}.svg", size_str), include_bytes!("../assets/mic_black.svg").as_slice())
+                                        (format!("bytes://osd_mic_black_{}.svg", size_str), replace_svg_size(include_bytes!("../assets/mic_black.svg"), size_f))
                                     } else {
-                                        (format!("bytes://osd_mic_white_{}.svg", size_str), include_bytes!("../assets/mic_white.svg").as_slice())
+                                        (format!("bytes://osd_mic_white_{}.svg", size_str), replace_svg_size(include_bytes!("../assets/mic_white.svg"), size_f))
                                     }
                                 };
                                 ui.add(egui::Image::from_bytes(uri, bytes).max_height(size_f * 0.5));
@@ -712,6 +872,6 @@ impl eframe::App for MicMuteApp {
     }
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
-        egui::Color32::TRANSPARENT.to_normalized_gamma_f32()
+        [0.0, 0.0, 0.0, 0.0]
     }
 }

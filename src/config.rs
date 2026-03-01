@@ -41,12 +41,18 @@ pub struct AppConfig {
     pub sound_mode_configs: std::collections::HashMap<String, SoundConfig>,
     
     pub hotkey: std::collections::HashMap<String, serde_json::Value>,
+    #[serde(default = "default_hotkey_mode")]
+    pub hotkey_mode: String, // "toggle" or "separate"
     
     #[serde(default = "default_afk")]
     pub afk: AfkConfig,
     
     pub persistent_overlay: OverlayConfig,
     pub osd: OsdConfig,
+}
+
+fn default_hotkey_mode() -> String {
+    "toggle".to_string()
 }
 
 fn default_afk() -> AfkConfig {
@@ -74,6 +80,12 @@ pub struct OsdConfig {
     pub duration: u32,
     pub position: String,
     pub size: u32,
+    #[serde(default = "default_osd_opacity")]
+    pub opacity: u8,
+}
+
+fn default_osd_opacity() -> u8 {
+    80
 }
 
 impl Default for AppConfig {
@@ -99,6 +111,7 @@ impl Default for AppConfig {
             beep_mode_configs,
             sound_mode_configs,
             hotkey,
+            hotkey_mode: default_hotkey_mode(),
             afk: default_afk(),
             persistent_overlay: OverlayConfig {
                 enabled: false,
@@ -118,6 +131,7 @@ impl Default for AppConfig {
                 duration: 1500,
                 position: "Bottom-Center".to_string(),
                 size: 150,
+                opacity: 80,
             },
         }
     }

@@ -6,7 +6,7 @@ use std::thread;
 use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx, MSG,
-    WH_KEYBOARD_LL, WM_KEYDOWN, WM_SYSKEYDOWN, KBDLLHOOKSTRUCT
+    WH_KEYBOARD_LL, WM_KEYDOWN, WM_SYSKEYDOWN, WM_KEYUP, WM_SYSKEYUP, KBDLLHOOKSTRUCT
 };
 
 static HOTKEY_SENDER: OnceLock<Sender<u32>> = OnceLock::new();
@@ -86,23 +86,34 @@ impl HotkeyManager {
 unsafe extern "system" fn hook_callback(n_code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if n_code >= 0 {
         let w_param_u32 = w_param.0 as u32;
-        if w_param_u32 == WM_KEYDOWN || w_param_u32 == WM_SYSKEYDOWN {
+        let is_down = w_param_u32 == WM_KEYDOWN || w_param_u32 == WM_SYSKEYDOWN;
+        let is_up = w_param_u32 == WM_KEYUP || w_param_u32 == WM_SYSKEYUP;
+
+        if is_down || is_up {
             let kbd_struct = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
             
             if RECORDING_MODE.load(Ordering::SeqCst) {
-                if let Some(sender) = RECORD_SENDER.get() {
-                    let _ = sender.send(kbd_struct.vkCode);
-                    // Consume the keypress so it doesn't do anything else while recording
+                if is_down {
+                    if let Some(sender) = RECORD_SENDER.get() {
+                        let _ = sender.send(kbd_struct.vkCode);
+                        // Consume the keypress during recording
+                        return windows::Win32::Foundation::LRESULT(1);
+                    }
+                } else if is_up {
+                    // Also swallow the UP event during recording to prevent accidental triggers
                     return windows::Win32::Foundation::LRESULT(1);
                 }
             } else {
                 for target_atomic in &TARGET_VKS {
                     let target = target_atomic.load(Ordering::SeqCst);
                     if target != 0 && kbd_struct.vkCode == target {
-                        if let Some(sender) = HOTKEY_SENDER.get() {
-                            let _ = sender.send(kbd_struct.vkCode);
-                            return windows::Win32::Foundation::LRESULT(1);
+                        if is_down {
+                            if let Some(sender) = HOTKEY_SENDER.get() {
+                                let _ = sender.send(kbd_struct.vkCode);
+                            }
                         }
+                        // Always swallow both DOWN and UP for matched hotkeys
+                        return windows::Win32::Foundation::LRESULT(1);
                     }
                 }
             }
