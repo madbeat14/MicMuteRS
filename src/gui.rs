@@ -272,24 +272,51 @@ impl eframe::App for MicMuteApp {
 
         // Root Viewport acts as the Overlay
         if self.config.persistent_overlay.enabled {
-            let overlay_width = if self.config.persistent_overlay.show_vu { 40.0 } else { 26.0 };
+            let scale = self.config.persistent_overlay.scale as f32;
+            let overlay_width = if self.config.persistent_overlay.show_vu { scale + 16.0 } else { scale };
             
             // Maintain root window bounds for the overlay
-            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(overlay_width, 26.0)));
+            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(overlay_width, scale)));
             
-            // Read current window position back to config to avoid snap-back when locking
-            if !self.config.persistent_overlay.locked {
+            // Calculate Predefined Positions
+            let mut target_pos = egui::Pos2::new(self.config.persistent_overlay.x as f32, self.config.persistent_overlay.y as f32);
+            let pos_mode = self.config.persistent_overlay.position_mode.as_str();
+            
+            if pos_mode != "Custom" {
+                 if let Some(monitor) = ctx.input(|i| i.viewport().monitor_size) {
+                      let mon_w = monitor.x;
+                      let mon_h = monitor.y;
+                      let w = overlay_width;
+                      let h = scale;
+                      
+                      target_pos = match pos_mode {
+                          "Top-Left" => egui::Pos2::new(0.0, 0.0),
+                          "Top-Center" => egui::Pos2::new((mon_w - w) / 2.0, 0.0),
+                          "Top-Right" => egui::Pos2::new(mon_w - w, 0.0),
+                          "Center-Left" => egui::Pos2::new(0.0, (mon_h - h) / 2.0),
+                          "Center" => egui::Pos2::new((mon_w - w) / 2.0, (mon_h - h) / 2.0),
+                          "Center-Right" => egui::Pos2::new(mon_w - w, (mon_h - h) / 2.0),
+                          "Bottom-Left" => egui::Pos2::new(0.0, mon_h - h),
+                          "Bottom-Center" => egui::Pos2::new((mon_w - w) / 2.0, mon_h - h),
+                          "Bottom-Right" => egui::Pos2::new(mon_w - w, mon_h - h),
+                          _ => target_pos,
+                      };
+                      
+                      // Update custom coords to match snap so if they switch back to Custom it doesn't jump
+                      self.config.persistent_overlay.x = target_pos.x as i32;
+                      self.config.persistent_overlay.y = target_pos.y as i32;
+                 }
+            } else if !self.config.persistent_overlay.locked {
+                // Read current window position back to config to avoid snap-back when locking
                 if let Some(rect) = ctx.input(|i| i.viewport().outer_rect) {
                     self.config.persistent_overlay.x = rect.min.x as i32;
                     self.config.persistent_overlay.y = rect.min.y as i32;
                 }
             }
 
-            // Lock position if enabled, else allow dragging
-            if self.config.persistent_overlay.locked {
-                ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(
-                    egui::Pos2::new(self.config.persistent_overlay.x as f32, self.config.persistent_overlay.y as f32)
-                ));
+            // Lock position if enabled or snapped, else allow dragging
+            if self.config.persistent_overlay.locked || pos_mode != "Custom" {
+                ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(target_pos));
                 // Architectural Fix: True OS Mouse Passthrough
                 ctx.send_viewport_cmd(egui::ViewportCommand::MousePassthrough(true));
             } else {
@@ -302,24 +329,30 @@ impl eframe::App for MicMuteApp {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 4.0;
                         let opacity_tint = egui::Color32::from_white_alpha((self.config.persistent_overlay.opacity as f32 / 100.0 * 255.0) as u8);
+                        let is_dark_theme = match self.config.persistent_overlay.theme.as_str() {
+                            "Dark" => true,
+                            "Light" => false,
+                            _ => !self.is_light_theme, // Auto case
+                        };
+
                         if self.is_muted {
-                            let img = if self.is_light_theme {
+                            let img = if !is_dark_theme {
                                 egui::include_image!("../assets/mic_muted_black.svg")
                             } else {
                                 egui::include_image!("../assets/mic_muted_white.svg")
                             };
-                            ui.add(egui::Image::new(img).max_height(24.0).tint(opacity_tint));
+                            ui.add(egui::Image::new(img).max_height(scale).tint(opacity_tint));
                         } else {
-                            let img = if self.is_light_theme {
+                            let img = if !is_dark_theme {
                                 egui::include_image!("../assets/mic_black.svg")
                             } else {
                                 egui::include_image!("../assets/mic_white.svg")
                             };
-                            ui.add(egui::Image::new(img).max_height(24.0).tint(opacity_tint));
+                            ui.add(egui::Image::new(img).max_height(scale).tint(opacity_tint));
                             
                             // VU Meter
                             if self.config.persistent_overlay.show_vu {
-                                let (rect, _response) = ui.allocate_exact_size(egui::vec2(10.0, 10.0), egui::Sense::hover());
+                                let (rect, _response) = ui.allocate_exact_size(egui::vec2(10.0, scale), egui::Sense::hover());
                                 let threshold = self.config.persistent_overlay.sensitivity as f32 / 100.0;
                                 let color = if self.peak_level > threshold {
                                     egui::Color32::GREEN
@@ -517,21 +550,58 @@ impl eframe::App for MicMuteApp {
                     config_changed |= ui.checkbox(&mut self.config.persistent_overlay.enabled, "Enable Persistent Overlay").changed();
                     let enabled = self.config.persistent_overlay.enabled;
                     ui.add_enabled_ui(enabled, |ui| {
+                        config_changed |= ui.checkbox(&mut self.config.persistent_overlay.show_vu, "Show Voice Activity Meter").changed();
                         config_changed |= ui.checkbox(&mut self.config.persistent_overlay.locked, "Lock Position (Disable Dragging)").changed();
-                        config_changed |= ui.checkbox(&mut self.config.persistent_overlay.show_vu, "Show VU Meter").changed();
+                        
                         ui.horizontal(|ui| {
-                            ui.label("Opacity:");
-                            config_changed |= ui.add(egui::Slider::new(&mut self.config.persistent_overlay.opacity, 10..=100)).changed();
+                            ui.label("Position:");
+                            let positions = [
+                                "Custom", "Top-Left", "Top-Center", "Top-Right",
+                                "Center-Left", "Center", "Center-Right",
+                                "Bottom-Left", "Bottom-Center", "Bottom-Right"
+                            ];
+                            egui::ComboBox::from_id_salt("overlay_pos")
+                                .selected_text(&self.config.persistent_overlay.position_mode)
+                                .show_ui(ui, |ui| {
+                                    for p in positions {
+                                        if ui.selectable_value(&mut self.config.persistent_overlay.position_mode, p.to_string(), p).changed() {
+                                            config_changed = true;
+                                        }
+                                    }
+                                });
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.label("Icon Theme:");
+                            let themes = ["Auto", "Dark", "Light", "Custom"];
+                            egui::ComboBox::from_id_salt("overlay_theme")
+                                .selected_text(&self.config.persistent_overlay.theme)
+                                .show_ui(ui, |ui| {
+                                    for t in themes {
+                                        if ui.selectable_value(&mut self.config.persistent_overlay.theme, t.to_string(), t).changed() {
+                                            config_changed = true;
+                                        }
+                                    }
+                                });
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.label("Size (Height):");
+                            config_changed |= ui.add(egui::Slider::new(&mut self.config.persistent_overlay.scale, 16..=256).suffix(" px")).changed();
                         });
                         ui.horizontal(|ui| {
-                            ui.label("VU Sensitivity:");
-                            config_changed |= ui.add(egui::Slider::new(&mut self.config.persistent_overlay.sensitivity, 1..=50)).changed();
+                            ui.label("Opacity:");
+                            config_changed |= ui.add(egui::Slider::new(&mut self.config.persistent_overlay.opacity, 10..=100).suffix("%")).changed();
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label("Sensitivity:");
+                            config_changed |= ui.add(egui::Slider::new(&mut self.config.persistent_overlay.sensitivity, 1..=50).suffix("%")).changed();
                         });
                     });
                 });
 
                 egui::CollapsingHeader::new("OSD (On-Screen Display)").default_open(true).show(ui, |ui| {
-                    config_changed |= ui.checkbox(&mut self.config.osd.enabled, "Enable OSD Notifications").changed();
+                    config_changed |= ui.checkbox(&mut self.config.osd.enabled, "Enable On-Screen Display (OSD)").changed();
                     let enabled = self.config.osd.enabled;
                     ui.add_enabled_ui(enabled, |ui| {
                         ui.horizontal(|ui| {
@@ -540,7 +610,20 @@ impl eframe::App for MicMuteApp {
                         });
                         ui.horizontal(|ui| {
                             ui.label("Size:");
-                            config_changed |= ui.add(egui::Slider::new(&mut self.config.osd.size, 50..=300)).changed();
+                            config_changed |= ui.add(egui::Slider::new(&mut self.config.osd.size, 50..=300).suffix(" px")).changed();
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label("Position:");
+                            let positions = ["Top", "Center", "Bottom"];
+                            egui::ComboBox::from_id_salt("osd_pos")
+                                .selected_text(&self.config.osd.position)
+                                .show_ui(ui, |ui| {
+                                    for p in positions {
+                                        if ui.selectable_value(&mut self.config.osd.position, p.to_string(), p).changed() {
+                                            config_changed = true;
+                                        }
+                                    }
+                                });
                         });
                     });
                 });
@@ -562,9 +645,31 @@ impl eframe::App for MicMuteApp {
         if let Some(start_time) = self.osd_timer {
             if start_time.elapsed().as_millis() < self.config.osd.duration as u128 {
                 let osd_id = egui::ViewportId::from_hash_of("osd_v2");
+                
+                // Calculate Predefined Vertical Position
+                let size_f = self.config.osd.size as f32;
+                let mut osd_pos = egui::Pos2::new(100.0, 100.0);
+                
+                // We read monitor size from root ctx
+                if let Some(monitor) = ctx.input(|i| i.viewport().monitor_size) {
+                    let mon_w = monitor.x;
+                    let mon_h = monitor.y;
+                    let w = size_f;
+                    let h = size_f;
+                    
+                    let x_center = (mon_w - w) / 2.0;
+                    
+                    osd_pos = match self.config.osd.position.as_str() {
+                        "Top" => egui::Pos2::new(x_center, 50.0), // 50px margin from top
+                        "Bottom" => egui::Pos2::new(x_center, mon_h - h - 100.0), // 100px margin from taskbar
+                        _ => egui::Pos2::new(x_center, (mon_h - h) / 2.0), // "Center"
+                    }
+                }
+
                 let osd_builder = egui::ViewportBuilder::default()
                     .with_title("MicMute OSD V2")
-                    .with_inner_size([self.config.osd.size as f32, self.config.osd.size as f32])
+                    .with_inner_size([size_f, size_f])
+                    .with_position(osd_pos)
                     .with_transparent(true)
                     .with_decorations(false)
                     .with_taskbar(false)
