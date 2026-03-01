@@ -270,58 +270,65 @@ impl eframe::App for MicMuteApp {
 
         self.peak_level = self.audio.get_peak_value().unwrap_or(0.0);
 
-        // Overlay Viewport (Transparent & Always on Top)
+        // Root Viewport acts as the Overlay
         if self.config.persistent_overlay.enabled {
-            let overlay_id = egui::ViewportId::from_hash_of("overlay_v2");
-            let overlay_builder = egui::ViewportBuilder::default()
-                .with_title("MicMute Overlay V2")
-                .with_inner_size([120.0, 50.0])
-                .with_position([self.config.persistent_overlay.x as f32, self.config.persistent_overlay.y as f32])
-                .with_transparent(true)
-                .with_decorations(false)
-                .with_taskbar(false)
-                .with_always_on_top();
+            let overlay_width = if self.config.persistent_overlay.show_vu { 40.0 } else { 26.0 };
+            
+            // Maintain root window bounds for the overlay
+            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(overlay_width, 26.0)));
+            
+            // Lock position if enabled, else allow dragging
+            if self.config.persistent_overlay.locked {
+                ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(
+                    egui::Pos2::new(self.config.persistent_overlay.x as f32, self.config.persistent_overlay.y as f32)
+                ));
+            }
 
-            ctx.show_viewport_immediate(overlay_id, overlay_builder, |ctx, _class| {
-                let response = egui::CentralPanel::default()
-                    .frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT))
-                    .show(ctx, |ui| {
-                        ui.horizontal(|ui| {
-                            let opacity_tint = egui::Color32::from_white_alpha((self.config.persistent_overlay.opacity as f32 / 100.0 * 255.0) as u8);
-                            if self.is_muted {
-                                let img = if self.is_light_theme {
-                                    egui::include_image!("../assets/mic_muted_black.svg")
-                                } else {
-                                    egui::include_image!("../assets/mic_muted_white.svg")
-                                };
-                                ui.add(egui::Image::new(img).max_height(24.0).tint(opacity_tint));
+            let response = egui::CentralPanel::default()
+                .frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT))
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing.x = 4.0;
+                        let opacity_tint = egui::Color32::from_white_alpha((self.config.persistent_overlay.opacity as f32 / 100.0 * 255.0) as u8);
+                        if self.is_muted {
+                            let img = if self.is_light_theme {
+                                egui::include_image!("../assets/mic_muted_black.svg")
                             } else {
-                                let img = if self.is_light_theme {
-                                    egui::include_image!("../assets/mic_black.svg")
+                                egui::include_image!("../assets/mic_muted_white.svg")
+                            };
+                            ui.add(egui::Image::new(img).max_height(24.0).tint(opacity_tint));
+                        } else {
+                            let img = if self.is_light_theme {
+                                egui::include_image!("../assets/mic_black.svg")
+                            } else {
+                                egui::include_image!("../assets/mic_white.svg")
+                            };
+                            ui.add(egui::Image::new(img).max_height(24.0).tint(opacity_tint));
+                            
+                            // VU Meter
+                            if self.config.persistent_overlay.show_vu {
+                                let (rect, _response) = ui.allocate_exact_size(egui::vec2(10.0, 10.0), egui::Sense::hover());
+                                let threshold = self.config.persistent_overlay.sensitivity as f32 / 100.0;
+                                let color = if self.peak_level > threshold {
+                                    egui::Color32::GREEN
                                 } else {
-                                    egui::include_image!("../assets/mic_white.svg")
+                                    egui::Color32::TRANSPARENT
                                 };
-                                ui.add(egui::Image::new(img).max_height(24.0).tint(opacity_tint));
-                                
-                                // VU Meter
-                                if self.config.persistent_overlay.show_vu {
-                                    let (rect, _response) = ui.allocate_exact_size(egui::vec2(10.0, 10.0), egui::Sense::hover());
-                                    let threshold = self.config.persistent_overlay.sensitivity as f32 / 100.0;
-                                    let color = if self.peak_level > threshold {
-                                        egui::Color32::GREEN
-                                    } else {
-                                        egui::Color32::TRANSPARENT
-                                    };
-                                    ui.painter().rect_filled(rect, 5.0, color);
-                                }
+                                ui.painter().rect_filled(rect, 5.0, color);
                             }
-                        });
-                    }).response;
+                        }
+                    });
+                }).response;
 
-                if !self.config.persistent_overlay.locked && response.interact(egui::Sense::click_and_drag()).dragged() {
-                    ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag);
-                }
-            });
+            if !self.config.persistent_overlay.locked && response.interact(egui::Sense::click_and_drag()).dragged() {
+                ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag);
+                // We'd ideally save the new position here, but egui's window positions are tricky to read back continuously without an event.
+                // We'll rely on the user dragging it.
+            }
+        } else {
+            // Hide the root window if overlay is disabled
+            ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
+            egui::CentralPanel::default().frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT)).show(ctx, |ui| { });
         }
 
         // Settings Viewport
@@ -329,10 +336,9 @@ impl eframe::App for MicMuteApp {
             let settings_id = egui::ViewportId::from_hash_of("settings_menu_v2");
             let settings_builder = egui::ViewportBuilder::default()
                 .with_title("MicMuteRs Settings")
-                .with_inner_size([400.0, 500.0])
-                .with_resizable(false)
-                .with_minimize_button(false)
-                .with_maximize_button(false)
+                .with_inner_size([400.0, 750.0])
+                .with_min_inner_size([300.0, 300.0])
+                .with_resizable(true)
                 .with_taskbar(false)
                 .with_active(true);
 
@@ -393,7 +399,7 @@ impl eframe::App for MicMuteApp {
                     }
                 });
 
-                egui::CollapsingHeader::new("Sync Devices (Simultaneous Mute)").default_open(false).show(ui, |ui| {
+                egui::CollapsingHeader::new("Sync Devices (Simultaneous Mute)").default_open(true).show(ui, |ui| {
                     ui.label("Devices selected here will mute/unmute alongside the primary device.");
                     egui::ScrollArea::vertical().max_height(150.0).show(ui, |ui| {
                         for (id, name) in &self.available_devices {
@@ -436,7 +442,7 @@ impl eframe::App for MicMuteApp {
                     });
                 });
 
-                egui::CollapsingHeader::new("System & Startup").default_open(false).show(ui, |ui| {
+                egui::CollapsingHeader::new("System & Startup").default_open(true).show(ui, |ui| {
                     if ui.checkbox(&mut self.startup_enabled, "Start MicMute on Boot").changed() {
                         crate::startup::set_run_on_startup(self.startup_enabled);
                     }
@@ -450,7 +456,7 @@ impl eframe::App for MicMuteApp {
                     });
                 });
 
-                egui::CollapsingHeader::new("Hotkeys (VK Codes)").default_open(false).show(ui, |ui| {
+                egui::CollapsingHeader::new("Hotkeys (VK Codes)").default_open(true).show(ui, |ui| {
                     let mut update_hotkeys = false;
                     let get_vk = |val: &serde_json::Value| -> u32 {
                         val.get("vk").and_then(|v| v.as_u64()).unwrap_or(0) as u32
@@ -495,7 +501,7 @@ impl eframe::App for MicMuteApp {
                     }
                 });
 
-                egui::CollapsingHeader::new("Persistent Overlay").default_open(false).show(ui, |ui| {
+                egui::CollapsingHeader::new("Persistent Overlay").default_open(true).show(ui, |ui| {
                     config_changed |= ui.checkbox(&mut self.config.persistent_overlay.enabled, "Enable Persistent Overlay").changed();
                     let enabled = self.config.persistent_overlay.enabled;
                     ui.add_enabled_ui(enabled, |ui| {
@@ -512,7 +518,7 @@ impl eframe::App for MicMuteApp {
                     });
                 });
 
-                egui::CollapsingHeader::new("OSD (On-Screen Display)").default_open(false).show(ui, |ui| {
+                egui::CollapsingHeader::new("OSD (On-Screen Display)").default_open(true).show(ui, |ui| {
                     config_changed |= ui.checkbox(&mut self.config.osd.enabled, "Enable OSD Notifications").changed();
                     let enabled = self.config.osd.enabled;
                     ui.add_enabled_ui(enabled, |ui| {
@@ -554,6 +560,7 @@ impl eframe::App for MicMuteApp {
                     .with_mouse_passthrough(true);
 
                 ctx.show_viewport_immediate(osd_id, osd_builder, |ctx, _class| {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Transparent(true));
                     egui::CentralPanel::default()
                         .frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT).inner_margin(10.0))
                         .show(ctx, |ui| {

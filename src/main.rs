@@ -51,15 +51,17 @@ fn main() -> eframe::Result<()> {
 
     // Start UI
     let native_options = eframe::NativeOptions {
+        renderer: eframe::Renderer::Glow,
         viewport: egui::ViewportBuilder::default()
             .with_visible(true)
             .with_decorations(false)
-            .with_transparent(true)
             .with_taskbar(false)
             .with_active(false)
-            .with_inner_size([1.0, 1.0])
-            .with_position([10000.0, 10000.0])
-            .with_title("MicMuteRs Daemon"),
+            .with_transparent(true)
+            .with_always_on_top()
+            .with_inner_size([if app_config.persistent_overlay.show_vu { 40.0 } else { 26.0 }, 26.0])
+            .with_position([app_config.persistent_overlay.x as f32, app_config.persistent_overlay.y as f32])
+            .with_title("MicMuteRs Overlay"),
         ..Default::default()
     };
 
