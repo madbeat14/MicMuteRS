@@ -10,3 +10,4 @@ Cargo.lock
 *.swp
 *.tmp
 /brain/
+__pycache__/
