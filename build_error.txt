@@ -1,0 +1,50 @@
+    Checking MicMuteRs v0.1.0 (C:\Users\papop\Desktop\TaskScheduler\MicMuteRs)
+error[E0599]: no method named `size` found for struct `usvg::Tree` in the current scope
+  --> src\tray.rs:66:26
+   |
+66 |         let width = tree.size().width();
+   |                          ^^^^ field, not a method
+   |
+help: remove the arguments
+   |
+66 -         let width = tree.size().width();
+66 +         let width = tree.size.width();
+   |
+help: one of the expressions' fields has a method of the same name
+   |
+66 |         let width = tree.view_box.rect.size().width();
+   |                          ++++++++++++++
+
+error[E0599]: no method named `size` found for struct `usvg::Tree` in the current scope
+  --> src\tray.rs:67:27
+   |
+67 |         let height = tree.size().height();
+   |                           ^^^^ field, not a method
+   |
+help: remove the arguments
+   |
+67 -         let height = tree.size().height();
+67 +         let height = tree.size.height();
+   |
+help: one of the expressions' fields has a method of the same name
+   |
+67 |         let height = tree.view_box.rect.size().height();
+   |                           ++++++++++++++
+
+warning: unused variable: `class`
+   --> src\gui.rs:197:76
+    |
+197 |             ctx.show_viewport_immediate(overlay_id, overlay_builder, |ctx, class| {
+    |                                                                            ^^^^^ help: if this is intentional, prefix it with an underscore: `_class`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `arguments`
+  --> src\startup.rs:73:9
+   |
+73 |     let arguments = format!("\"{}\"", exe_str);
+   |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_arguments`
+
+For more information about this error, try `rustc --explain E0599`.
+warning: `MicMuteRs` (bin "MicMuteRs") generated 2 warnings
+error: could not compile `MicMuteRs` (bin "MicMuteRs") due to 2 previous errors; 2 warnings emitted

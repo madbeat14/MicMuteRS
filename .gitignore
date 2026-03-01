@@ -1,0 +1,12 @@
+/target
+error.log
+build_output.txt
+build_output_v2.txt
+*.pdb
+*.exe
+Cargo.lock
+.idea/
+.vscode/
+*.swp
+*.tmp
+/brain/

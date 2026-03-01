@@ -1,0 +1,10 @@
+=== CAPTURE DEVICES ===
+ - [{0.0.1.00000000}.{582b0654-d669-4d12-b157-20baee9da239}] 'Micrófono (Realtek(R) Audio)' MUTED: true
+ - [{0.0.1.00000000}.{b6eff619-2ed0-4ec1-9c18-bbc33a802301}] 'Auriculares con micrófono (4- CX31993+MAX97220 HiFiAudio)' MUTED: true
+
+=== RENDER DEVICES ===
+ - [{0.0.0.00000000}.{4a1112d6-07c8-49ae-bdf4-05c1d6451fc7}] '1 - MSI G241 (AMD High Definition Audio Device)' MUTED: false
+ - [{0.0.0.00000000}.{51718398-4d7f-4d3e-8d40-3550251c9e69}] 'Altavoces (Steam Streaming Speakers)' MUTED: false
+ - [{0.0.0.00000000}.{9a4936e2-6456-4642-914f-74c1653d65be}] 'Altavoces (Realtek(R) Audio)' MUTED: false
+ - [{0.0.0.00000000}.{c35250ea-8eb6-419b-85c5-919d034cde6e}] '5 - MO27Q28G (AMD High Definition Audio Device)' MUTED: false
+ - [{0.0.0.00000000}.{d3854aab-7c17-4841-921e-417ca4ef34dd}] 'Auriculares con micrófono (4- CX31993+MAX97220 HiFiAudio)' MUTED: false

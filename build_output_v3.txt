@@ -1,0 +1,426 @@
+warning: unused imports: `eCapture` and `eConsole`
+ --> src\bin\test_meter.rs:1:36
+  |
+1 | use windows::Win32::Media::Audio::{eCapture, eConsole, IMMDeviceE...
+  |                                    ^^^^^^^^  ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `DEVICE_STATE_ACTIVE`, `eCapture`, and `eRender`
+ --> src\bin\test_cx31993.rs:1:36
+  |
+1 | ...::{eCapture, eRender, IMMDeviceEnumerator, MMDeviceEnumerator, DEVICE_STATE_ACTIVE};
+  |       ^^^^^^^^  ^^^^^^^                                           ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `STGM_READ`
+ --> src\bin\test_cx31993.rs:2:103
+  |
+2 | ...LL, COINIT_MULTITHREADED, STGM_READ};
+  |                              ^^^^^^^^^
+
+warning: unused imports: `AUDCLNT_SHAREMODE_SHARED`, `IAudioClient`, and `eCapture`
+ --> src\bin\test_direct_mute.rs:1:36
+  |
+1 | ...::{eCapture, IMMDeviceEnumerator, MMDeviceEnumerator, IAudioClient, AUDCLNT_SHAREMODE_SHARED};
+  |       ^^^^^^^^                                           ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::time::Duration`
+ --> src\bin\test_audio_playback.rs:4:5
+  |
+4 | use std::time::Duration;
+  |     ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `PCWSTR`
+ --> src\bin\diagnostics.rs:1:29
+  |
+1 | use windows::core::{Result, PCWSTR};
+  |                             ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `DEVICE_STATE_DISABLED`, `DEVICE_STATE_UNPLUGGED`, and `eConsole`
+ --> src\bin\diagnostics.rs:2:55
+  |
+2 | ...r, eConsole, IMMDeviceEnumerator, MMDeviceEnumerator, DEVICE_STATE_ACTIVE, DEVICE_STATE_UNPLUGGED, DEVICE_STATE_DISABLED};
+  |       ^^^^^^^^                                                                ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::ffi::c_void`
+ --> src\bin\diagnostics.rs:6:5
+  |
+6 | use std::ffi::c_void;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `PCWSTR`
+ --> src\bin\test_peak.rs:1:29
+  |
+1 | use windows::core::{Result, PCWSTR};
+  |                             ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `i`
+  --> src\bin\test_peak.rs:18:13
+   |
+18 |         for i in 0..10 {
+   |             ^ help: if this is intentional, prefix it with an underscore: `_i`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `i`
+  --> src\bin\test_peak.rs:27:13
+   |
+27 |         for i in 0..10 {
+   |             ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+   Compiling MicMuteRs v0.1.0 (C:\Users\papop\Desktop\TaskScheduler\MicMuteRs)
+warning: `MicMuteRs` (bin "test_meter") generated 1 warning (run `cargo fix --bin "test_meter" -p MicMuteRs` to apply 1 suggestion)
+warning: `MicMuteRs` (bin "test_cx31993") generated 2 warnings (run `cargo fix --bin "test_cx31993" -p MicMuteRs` to apply 2 suggestions)
+warning: `MicMuteRs` (bin "test_direct_mute") generated 1 warning (run `cargo fix --bin "test_direct_mute" -p MicMuteRs` to apply 1 suggestion)
+warning: `MicMuteRs` (bin "test_audio_playback") generated 1 warning (run `cargo fix --bin "test_audio_playback" -p MicMuteRs` to apply 1 suggestion)
+warning: `MicMuteRs` (bin "diagnostics") generated 3 warnings (run `cargo fix --bin "diagnostics" -p MicMuteRs` to apply 3 suggestions)
+warning: `MicMuteRs` (bin "test_peak") generated 3 warnings (run `cargo fix --bin "test_peak" -p MicMuteRs` to apply 3 suggestions)
+warning: unused import: `eCapture`
+ --> src\audio.rs:3:5
+  |
+3 |     eCapture, eConsole, IMMDevice, IMMDeviceEnumerator, MMDeviceEnumerator, IAudioClient, AUDCLNT_SHAREMODE_SHARED,
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::sync::mpsc`
+ --> src\gui.rs:4:5
+  |
+4 | use std::sync::mpsc;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused imports: `Arc` and `Mutex`
+ --> src\gui.rs:6:17
+  |
+6 | use std::sync::{Arc, Mutex};
+  |                 ^^^  ^^^^^
+
+warning: unused variable: `arguments`
+  --> src\startup.rs:73:9
+   |
+73 |     let arguments = format!("\"{}\"", exe_str);
+   |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_arguments`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `startup_enabled` is never read
+  --> src\gui.rs:21:5
+   |
+ 8 | pub struct MicMuteApp {
+   |            ---------- field in this struct
+...
+21 |     startup_enabled: bool,
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `GetMixFormat` should have a snake case name
+ --> src\com_interfaces.rs:5:15
+  |
+5 |     unsafe fn GetMixFormat(&self, pszdevicename: PCWSTR, ppformat: *mut std::ffi::c_void) -> HRESULT;
+  |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `get_mix_format`
+  |
+  = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: method `GetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:6:15
+  |
+6 |     unsafe fn GetDeviceFormat(&self, pszdevicename: PCWSTR, bdefault: i32, ppformat: *mut std::ffi::c_void) -> HRESULT;
+  |               ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_device_format`
+
+warning: method `ResetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:7:15
+  |
+7 |     unsafe fn ResetDeviceFormat(&self, pszdevicename: PCWSTR) -> HRESULT;
+  |               ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `reset_device_format`
+
+warning: method `SetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:8:15
+  |
+8 |     unsafe fn SetDeviceFormat(&self, pszdevicename: PCWSTR, pendpointformat: *const std::ffi::c_void, pmixformat: *const std::ffi::c_void...
+  |               ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_device_format`
+
+warning: method `GetProcessingPeriod` should have a snake case name
+ --> src\com_interfaces.rs:9:15
+  |
+9 |     unsafe fn GetProcessingPeriod(&self, pszdevicename: PCWSTR, bdefault: i32, pmftdefaultperiod: *mut i64, pmftminimumperiod: *mut i64) ...
+  |               ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_processing_period`
+
+warning: method `SetProcessingPeriod` should have a snake case name
+  --> src\com_interfaces.rs:10:15
+   |
+10 |     unsafe fn SetProcessingPeriod(&self, pszdevicename: PCWSTR, pmftperiod: *const i64) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_processing_period`
+
+warning: method `GetShareMode` should have a snake case name
+  --> src\com_interfaces.rs:11:15
+   |
+11 |     unsafe fn GetShareMode(&self, pszdevicename: PCWSTR, pmode: *mut i32) -> HRESULT;
+   |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `get_share_mode`
+
+warning: method `SetShareMode` should have a snake case name
+  --> src\com_interfaces.rs:12:15
+   |
+12 |     unsafe fn SetShareMode(&self, pszdevicename: PCWSTR, mode: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `set_share_mode`
+
+warning: method `GetPropertyValue` should have a snake case name
+  --> src\com_interfaces.rs:13:15
+   |
+13 |     unsafe fn GetPropertyValue(&self, pszdevicename: PCWSTR, pkey: *const std::ffi::c_void, pvalue: *mut std::ffi::c_void) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_property_value`
+
+warning: method `SetPropertyValue` should have a snake case name
+  --> src\com_interfaces.rs:14:15
+   |
+14 |     unsafe fn SetPropertyValue(&self, pszdevicename: PCWSTR, pkey: *const std::ffi::c_void, pvalue: *const std::ffi::c_void) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_property_value`
+
+warning: method `SetDefaultEndpoint` should have a snake case name
+  --> src\com_interfaces.rs:15:15
+   |
+15 |     unsafe fn SetDefaultEndpoint(&self, wszdeviceid: PCWSTR, role: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_default_endpoint`
+
+warning: method `SetEndpointVisibility` should have a snake case name
+  --> src\com_interfaces.rs:16:15
+   |
+16 |     unsafe fn SetEndpointVisibility(&self, wszdeviceid: PCWSTR, bvisible: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_endpoint_visibility`
+
+warning: trait method `GetMixFormat` should have a snake case name
+ --> src\com_interfaces.rs:5:15
+  |
+5 |     unsafe fn GetMixFormat(&self, pszdevicename: PCWSTR, ppformat: *mut std::ffi::c_void) -> HRESULT;
+  |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `get_mix_format`
+
+warning: trait method `GetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:6:15
+  |
+6 |     unsafe fn GetDeviceFormat(&self, pszdevicename: PCWSTR, bdefault: i32, ppformat: *mut std::ffi::c_void) -> HRESULT;
+  |               ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_device_format`
+
+warning: trait method `ResetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:7:15
+  |
+7 |     unsafe fn ResetDeviceFormat(&self, pszdevicename: PCWSTR) -> HRESULT;
+  |               ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `reset_device_format`
+
+warning: trait method `SetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:8:15
+  |
+8 |     unsafe fn SetDeviceFormat(&self, pszdevicename: PCWSTR, pendpointformat: *const std::ffi::c_void, pmixformat: *const std::ffi::c_void...
+  |               ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_device_format`
+
+warning: trait method `GetProcessingPeriod` should have a snake case name
+ --> src\com_interfaces.rs:9:15
+  |
+9 |     unsafe fn GetProcessingPeriod(&self, pszdevicename: PCWSTR, bdefault: i32, pmftdefaultperiod: *mut i64, pmftminimumperiod: *mut i64) ...
+  |               ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_processing_period`
+
+warning: trait method `SetProcessingPeriod` should have a snake case name
+  --> src\com_interfaces.rs:10:15
+   |
+10 |     unsafe fn SetProcessingPeriod(&self, pszdevicename: PCWSTR, pmftperiod: *const i64) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_processing_period`
+
+warning: trait method `GetShareMode` should have a snake case name
+  --> src\com_interfaces.rs:11:15
+   |
+11 |     unsafe fn GetShareMode(&self, pszdevicename: PCWSTR, pmode: *mut i32) -> HRESULT;
+   |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `get_share_mode`
+
+warning: trait method `SetShareMode` should have a snake case name
+  --> src\com_interfaces.rs:12:15
+   |
+12 |     unsafe fn SetShareMode(&self, pszdevicename: PCWSTR, mode: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `set_share_mode`
+
+warning: trait method `GetPropertyValue` should have a snake case name
+  --> src\com_interfaces.rs:13:15
+   |
+13 |     unsafe fn GetPropertyValue(&self, pszdevicename: PCWSTR, pkey: *const std::ffi::c_void, pvalue: *mut std::ffi::c_void) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_property_value`
+
+warning: trait method `SetPropertyValue` should have a snake case name
+  --> src\com_interfaces.rs:14:15
+   |
+14 |     unsafe fn SetPropertyValue(&self, pszdevicename: PCWSTR, pkey: *const std::ffi::c_void, pvalue: *const std::ffi::c_void) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_property_value`
+
+warning: trait method `SetDefaultEndpoint` should have a snake case name
+  --> src\com_interfaces.rs:15:15
+   |
+15 |     unsafe fn SetDefaultEndpoint(&self, wszdeviceid: PCWSTR, role: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_default_endpoint`
+
+warning: trait method `SetEndpointVisibility` should have a snake case name
+  --> src\com_interfaces.rs:16:15
+   |
+16 |     unsafe fn SetEndpointVisibility(&self, wszdeviceid: PCWSTR, bvisible: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_endpoint_visibility`
+
+warning: structure field `GetMixFormat` should have a snake case name
+ --> src\com_interfaces.rs:5:15
+  |
+5 |     unsafe fn GetMixFormat(&self, pszdevicename: PCWSTR, ppformat: *mut std::ffi::c_void) -> HRESULT;
+  |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `get_mix_format`
+
+warning: structure field `GetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:6:15
+  |
+6 |     unsafe fn GetDeviceFormat(&self, pszdevicename: PCWSTR, bdefault: i32, ppformat: *mut std::ffi::c_void) -> HRESULT;
+  |               ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_device_format`
+
+warning: structure field `ResetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:7:15
+  |
+7 |     unsafe fn ResetDeviceFormat(&self, pszdevicename: PCWSTR) -> HRESULT;
+  |               ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `reset_device_format`
+
+warning: structure field `SetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:8:15
+  |
+8 |     unsafe fn SetDeviceFormat(&self, pszdevicename: PCWSTR, pendpointformat: *const std::ffi::c_void, pmixformat: *const std::ffi::c_void...
+  |               ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_device_format`
+
+warning: structure field `GetProcessingPeriod` should have a snake case name
+ --> src\com_interfaces.rs:9:15
+  |
+9 |     unsafe fn GetProcessingPeriod(&self, pszdevicename: PCWSTR, bdefault: i32, pmftdefaultperiod: *mut i64, pmftminimumperiod: *mut i64) ...
+  |               ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_processing_period`
+
+warning: structure field `SetProcessingPeriod` should have a snake case name
+  --> src\com_interfaces.rs:10:15
+   |
+10 |     unsafe fn SetProcessingPeriod(&self, pszdevicename: PCWSTR, pmftperiod: *const i64) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_processing_period`
+
+warning: structure field `GetShareMode` should have a snake case name
+  --> src\com_interfaces.rs:11:15
+   |
+11 |     unsafe fn GetShareMode(&self, pszdevicename: PCWSTR, pmode: *mut i32) -> HRESULT;
+   |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `get_share_mode`
+
+warning: structure field `SetShareMode` should have a snake case name
+  --> src\com_interfaces.rs:12:15
+   |
+12 |     unsafe fn SetShareMode(&self, pszdevicename: PCWSTR, mode: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `set_share_mode`
+
+warning: structure field `GetPropertyValue` should have a snake case name
+  --> src\com_interfaces.rs:13:15
+   |
+13 |     unsafe fn GetPropertyValue(&self, pszdevicename: PCWSTR, pkey: *const std::ffi::c_void, pvalue: *mut std::ffi::c_void) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_property_value`
+
+warning: structure field `SetPropertyValue` should have a snake case name
+  --> src\com_interfaces.rs:14:15
+   |
+14 |     unsafe fn SetPropertyValue(&self, pszdevicename: PCWSTR, pkey: *const std::ffi::c_void, pvalue: *const std::ffi::c_void) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_property_value`
+
+warning: structure field `SetDefaultEndpoint` should have a snake case name
+  --> src\com_interfaces.rs:15:15
+   |
+15 |     unsafe fn SetDefaultEndpoint(&self, wszdeviceid: PCWSTR, role: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_default_endpoint`
+
+warning: structure field `SetEndpointVisibility` should have a snake case name
+  --> src\com_interfaces.rs:16:15
+   |
+16 |     unsafe fn SetEndpointVisibility(&self, wszdeviceid: PCWSTR, bvisible: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_endpoint_visibility`
+
+warning: function `GetMixFormat` should have a snake case name
+ --> src\com_interfaces.rs:5:15
+  |
+5 |     unsafe fn GetMixFormat(&self, pszdevicename: PCWSTR, ppformat: *mut std::ffi::c_void) -> HRESULT;
+  |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `get_mix_format`
+
+warning: function `GetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:6:15
+  |
+6 |     unsafe fn GetDeviceFormat(&self, pszdevicename: PCWSTR, bdefault: i32, ppformat: *mut std::ffi::c_void) -> HRESULT;
+  |               ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_device_format`
+
+warning: function `ResetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:7:15
+  |
+7 |     unsafe fn ResetDeviceFormat(&self, pszdevicename: PCWSTR) -> HRESULT;
+  |               ^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `reset_device_format`
+
+warning: function `SetDeviceFormat` should have a snake case name
+ --> src\com_interfaces.rs:8:15
+  |
+8 |     unsafe fn SetDeviceFormat(&self, pszdevicename: PCWSTR, pendpointformat: *const std::ffi::c_void, pmixformat: *const std::ffi::c_void...
+  |               ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_device_format`
+
+warning: function `GetProcessingPeriod` should have a snake case name
+ --> src\com_interfaces.rs:9:15
+  |
+9 |     unsafe fn GetProcessingPeriod(&self, pszdevicename: PCWSTR, bdefault: i32, pmftdefaultperiod: *mut i64, pmftminimumperiod: *mut i64) ...
+  |               ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_processing_period`
+
+warning: function `SetProcessingPeriod` should have a snake case name
+  --> src\com_interfaces.rs:10:15
+   |
+10 |     unsafe fn SetProcessingPeriod(&self, pszdevicename: PCWSTR, pmftperiod: *const i64) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_processing_period`
+
+warning: function `GetShareMode` should have a snake case name
+  --> src\com_interfaces.rs:11:15
+   |
+11 |     unsafe fn GetShareMode(&self, pszdevicename: PCWSTR, pmode: *mut i32) -> HRESULT;
+   |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `get_share_mode`
+
+warning: function `SetShareMode` should have a snake case name
+  --> src\com_interfaces.rs:12:15
+   |
+12 |     unsafe fn SetShareMode(&self, pszdevicename: PCWSTR, mode: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^ help: convert the identifier to snake case: `set_share_mode`
+
+warning: function `GetPropertyValue` should have a snake case name
+  --> src\com_interfaces.rs:13:15
+   |
+13 |     unsafe fn GetPropertyValue(&self, pszdevicename: PCWSTR, pkey: *const std::ffi::c_void, pvalue: *mut std::ffi::c_void) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `get_property_value`
+
+warning: function `SetPropertyValue` should have a snake case name
+  --> src\com_interfaces.rs:14:15
+   |
+14 |     unsafe fn SetPropertyValue(&self, pszdevicename: PCWSTR, pkey: *const std::ffi::c_void, pvalue: *const std::ffi::c_void) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_property_value`
+
+warning: function `SetDefaultEndpoint` should have a snake case name
+  --> src\com_interfaces.rs:15:15
+   |
+15 |     unsafe fn SetDefaultEndpoint(&self, wszdeviceid: PCWSTR, role: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_default_endpoint`
+
+warning: function `SetEndpointVisibility` should have a snake case name
+  --> src\com_interfaces.rs:16:15
+   |
+16 |     unsafe fn SetEndpointVisibility(&self, wszdeviceid: PCWSTR, bvisible: i32) -> HRESULT;
+   |               ^^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `set_endpoint_visibility`
+
+warning: constant `CLSID_PolicyConfig` should have an upper case name
+  --> src\com_interfaces.rs:19:11
+   |
+19 | pub const CLSID_PolicyConfig: GUID = GUID::from_u128(0x870af99c_171d_4f9e_af0d_e63df40c2bc9);
+   |           ^^^^^^^^^^^^^^^^^^ help: convert the identifier to upper case: `CLSID_POLICY_CONFIG`
+   |
+   = note: `#[warn(non_upper_case_globals)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: `MicMuteRs` (bin "MicMuteRs") generated 54 warnings (run `cargo fix --bin "MicMuteRs" -p MicMuteRs` to apply 4 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.20s
