@@ -277,11 +277,23 @@ impl eframe::App for MicMuteApp {
             // Maintain root window bounds for the overlay
             ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(overlay_width, 26.0)));
             
+            // Read current window position back to config to avoid snap-back when locking
+            if !self.config.persistent_overlay.locked {
+                if let Some(rect) = ctx.input(|i| i.viewport().outer_rect) {
+                    self.config.persistent_overlay.x = rect.min.x as i32;
+                    self.config.persistent_overlay.y = rect.min.y as i32;
+                }
+            }
+
             // Lock position if enabled, else allow dragging
             if self.config.persistent_overlay.locked {
                 ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(
                     egui::Pos2::new(self.config.persistent_overlay.x as f32, self.config.persistent_overlay.y as f32)
                 ));
+                // Architectural Fix: True OS Mouse Passthrough
+                ctx.send_viewport_cmd(egui::ViewportCommand::MousePassthrough(true));
+            } else {
+                ctx.send_viewport_cmd(egui::ViewportCommand::MousePassthrough(false));
             }
 
             let response = egui::CentralPanel::default()

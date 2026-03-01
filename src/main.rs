@@ -62,6 +62,8 @@ fn main() -> eframe::Result<()> {
             .with_inner_size([if app_config.persistent_overlay.show_vu { 40.0 } else { 26.0 }, 26.0])
             .with_position([app_config.persistent_overlay.x as f32, app_config.persistent_overlay.y as f32])
             .with_title("MicMuteRs Overlay"),
+        depth_buffer: 0,
+        multisampling: 0,
         ..Default::default()
     };
 
