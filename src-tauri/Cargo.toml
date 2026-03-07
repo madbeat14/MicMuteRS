@@ -8,6 +8,10 @@ name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
+name = "mic-mute-rs"
+path = "src/main.rs"
+
+[[bin]]
 name = "diagnostics"
 path = "src/bin/diagnostics.rs"
 
