@@ -1,16 +1,12 @@
+use rodio::{OutputStream, Sink};
 use std::fs::File;
 use std::io::BufReader;
-use rodio::{OutputStream, Sink};
-use std::time::Duration;
 
 fn main() {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
 
-    let paths = vec![
-        "assets/mute.wav",
-        "assets/unmute.wav",
-    ];
+    let paths = vec!["assets/mute.wav", "assets/unmute.wav"];
 
     for path in paths {
         println!("Testing path: {}", path);

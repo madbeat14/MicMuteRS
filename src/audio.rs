@@ -1,17 +1,18 @@
-use windows::core::Result;
-use windows::Win32::Media::Audio::{
-    eCapture, eConsole, IMMDevice, IMMDeviceEnumerator, MMDeviceEnumerator, IAudioClient, AUDCLNT_SHAREMODE_SHARED,
-};
-use windows::Win32::Media::Audio::Endpoints::{IAudioEndpointVolume, IAudioMeterInformation};
-use windows::Win32::System::Com::{
-    CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED, STGM_READ,
-};
-use windows::Win32::Devices::FunctionDiscovery::PKEY_Device_FriendlyName;
+use crate::config::AppConfig;
 use rodio::{OutputStream, OutputStreamHandle, Sink, Source, source::SineWave};
-use std::time::Duration;
 use std::fs::File;
 use std::io::{BufReader, Cursor};
-use crate::config::AppConfig;
+use std::time::Duration;
+use windows::Win32::Devices::FunctionDiscovery::PKEY_Device_FriendlyName;
+use windows::Win32::Media::Audio::Endpoints::{IAudioEndpointVolume, IAudioMeterInformation};
+use windows::Win32::Media::Audio::{
+    AUDCLNT_SHAREMODE_SHARED, IAudioClient, IMMDevice, IMMDeviceEnumerator, MMDeviceEnumerator,
+    eConsole,
+};
+use windows::Win32::System::Com::{
+    CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, STGM_READ,
+};
+use windows::core::Result;
 
 const MUTE_WAV: &[u8] = include_bytes!("../assets/mute.wav");
 const UNMUTE_WAV: &[u8] = include_bytes!("../assets/unmute.wav");
@@ -29,20 +30,22 @@ pub struct AudioController {
 
 impl AudioController {
     pub fn new(device_id: Option<&String>) -> Result<Self> {
-        let (_stream, stream_handle) = OutputStream::try_default().expect("Failed to get default audio output device for feedback");
-        
+        let (_stream, stream_handle) = OutputStream::try_default()
+            .expect("Failed to get default audio output device for feedback");
+
         unsafe {
             // Ensure COM is initialized for the thread
             let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
 
             let enumerator: IMMDeviceEnumerator =
                 CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
-                
+
             let device: IMMDevice = if let Some(id) = device_id {
                 let wide_id: Vec<u16> = id.encode_utf16().chain(std::iter::once(0)).collect();
                 enumerator.GetDevice(windows::core::PCWSTR(wide_id.as_ptr()))?
             } else {
-                enumerator.GetDefaultAudioEndpoint(windows::Win32::Media::Audio::eCapture, eConsole)?
+                enumerator
+                    .GetDefaultAudioEndpoint(windows::Win32::Media::Audio::eCapture, eConsole)?
             };
 
             let volume: IAudioEndpointVolume = device.Activate(CLSCTX_ALL, None)?;
@@ -53,12 +56,17 @@ impl AudioController {
                 if let Ok(fmt) = client.GetMixFormat() {
                     // Initialize and Start the client so the hardware starts feeding meter data
                     // AUDCLNT_SHAREMODE_SHARED = 0
-                    if client.Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 10000000, 0, fmt, None).is_ok() {
+                    if client
+                        .Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 10000000, 0, fmt, None)
+                        .is_ok()
+                    {
                         if client.Start().is_ok() {
                             audio_client = Some(client);
                         }
                     }
-                    windows::Win32::System::Com::CoTaskMemFree(Some(fmt as *const _ as *const std::ffi::c_void));
+                    windows::Win32::System::Com::CoTaskMemFree(Some(
+                        fmt as *const _ as *const std::ffi::c_void,
+                    ));
                 }
             }
 
@@ -88,27 +96,45 @@ impl AudioController {
             return Err(e);
         }
         debug_msg.push_str(&format!("Muted Main: {}; ", mute));
-            
+
         // Sync logic mirroring python implementation
         if !config.sync_ids.is_empty() {
             unsafe {
                 let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
-                if let Ok(enumerator) = CoCreateInstance::<_, IMMDeviceEnumerator>(&MMDeviceEnumerator, None, CLSCTX_ALL) {
-                    if let Ok(collection) = enumerator.EnumAudioEndpoints(windows::Win32::Media::Audio::eCapture, windows::Win32::Media::Audio::DEVICE_STATE_ACTIVE) {
+                if let Ok(enumerator) = CoCreateInstance::<_, IMMDeviceEnumerator>(
+                    &MMDeviceEnumerator,
+                    None,
+                    CLSCTX_ALL,
+                ) {
+                    if let Ok(collection) = enumerator.EnumAudioEndpoints(
+                        windows::Win32::Media::Audio::eCapture,
+                        windows::Win32::Media::Audio::DEVICE_STATE_ACTIVE,
+                    ) {
                         if let Ok(count) = collection.GetCount() {
                             for i in 0..count {
                                 if let Ok(dev) = collection.Item(i) {
                                     if let Ok(id_pwstr) = dev.GetId() {
                                         let id_string = id_pwstr.to_string().unwrap_or_default();
                                         if let Some(main_id) = &config.device_id {
-                                            if &id_string == main_id { continue; }
+                                            if &id_string == main_id {
+                                                continue;
+                                            }
                                         }
                                         if config.sync_ids.contains(&id_string) {
-                                            if let Ok(vol) = dev.Activate::<IAudioEndpointVolume>(CLSCTX_ALL, None) {
-                                                if let Err(e) = vol.SetMute(mute, std::ptr::null()) {
-                                                    eprintln!("[ERROR] Failed to set mute state for sync device {}: {:?}", id_string, e);
+                                            if let Ok(vol) = dev
+                                                .Activate::<IAudioEndpointVolume>(CLSCTX_ALL, None)
+                                            {
+                                                if let Err(e) = vol.SetMute(mute, std::ptr::null())
+                                                {
+                                                    eprintln!(
+                                                        "[ERROR] Failed to set mute state for sync device {}: {:?}",
+                                                        id_string, e
+                                                    );
                                                 } else {
-                                                    debug_msg.push_str(&format!("Sync {}: {}; ", id_string, mute));
+                                                    debug_msg.push_str(&format!(
+                                                        "Sync {}: {}; ",
+                                                        id_string, mute
+                                                    ));
                                                 }
                                             }
                                         }
@@ -163,7 +189,7 @@ impl AudioController {
             if let Some(sound_cfg) = config.sound_mode_configs.get(key) {
                 let mut path_found = None;
                 let sound_cfg_file = &sound_cfg.file;
-                
+
                 let p = std::path::PathBuf::from(sound_cfg_file);
                 if p.is_absolute() && p.exists() {
                     path_found = Some(p);
@@ -178,7 +204,10 @@ impl AudioController {
                         }
                     }
                     if path_found.is_none() {
-                        let cwd_assets = std::env::current_dir().unwrap_or_default().join("assets").join(sound_cfg_file);
+                        let cwd_assets = std::env::current_dir()
+                            .unwrap_or_default()
+                            .join("assets")
+                            .join(sound_cfg_file);
                         if cwd_assets.exists() {
                             path_found = Some(cwd_assets);
                         }
@@ -186,7 +215,13 @@ impl AudioController {
                     if path_found.is_none() {
                         // Fallback to Python AppData sounds directory
                         if let Some(proj_dirs) = directories::ProjectDirs::from("", "", "MicMute") {
-                            let appdata_path = proj_dirs.data_local_dir().parent().unwrap_or(proj_dirs.data_local_dir()).join("MicMute").join("micmute_sounds").join(sound_cfg_file);
+                            let appdata_path = proj_dirs
+                                .data_local_dir()
+                                .parent()
+                                .unwrap_or(proj_dirs.data_local_dir())
+                                .join("MicMute")
+                                .join("micmute_sounds")
+                                .join(sound_cfg_file);
                             if appdata_path.exists() {
                                 path_found = Some(appdata_path);
                             }
@@ -208,8 +243,11 @@ impl AudioController {
                         eprintln!("[ERROR] Failed to open audio file: {:?}", valid_path);
                     }
                 } else {
-                    eprintln!("[ERROR] Audio file not found: {}. Using embedded fallback.", sound_cfg_file);
-                    
+                    eprintln!(
+                        "[ERROR] Audio file not found: {}. Using embedded fallback.",
+                        sound_cfg_file
+                    );
+
                     let bytes = if key == "mute" { MUTE_WAV } else { UNMUTE_WAV };
                     if let Ok(source) = rodio::Decoder::new(Cursor::new(bytes)) {
                         let sink = Sink::try_new(&self.stream_handle).unwrap();
@@ -235,22 +273,27 @@ impl AudioController {
 pub fn get_audio_devices() -> Result<Vec<(String, String)>> {
     unsafe {
         let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
-        let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
-        let collection = enumerator.EnumAudioEndpoints(windows::Win32::Media::Audio::eCapture, windows::Win32::Media::Audio::DEVICE_STATE_ACTIVE)?;
+        let enumerator: IMMDeviceEnumerator =
+            CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
+        let collection = enumerator.EnumAudioEndpoints(
+            windows::Win32::Media::Audio::eCapture,
+            windows::Win32::Media::Audio::DEVICE_STATE_ACTIVE,
+        )?;
         let count = collection.GetCount()?;
         let mut devices = Vec::new();
-        
+
         for i in 0..count {
             if let Ok(device) = collection.Item(i) {
                 if let Ok(id_pwstr) = device.GetId() {
                     let id_string = id_pwstr.to_string().unwrap_or_default();
                     let mut name = "Unknown Device".to_string();
-                    
+
                     if let Ok(store) = device.OpenPropertyStore(STGM_READ) {
                         if let Ok(prop_var) = store.GetValue(&PKEY_Device_FriendlyName) {
                             let ptr = &prop_var as *const _ as *const u16;
                             let vt = *ptr;
-                            if vt == 31 { // VT_LPWSTR
+                            if vt == 31 {
+                                // VT_LPWSTR
                                 let wstr_ptr_addr = ptr.add(4) as *const *const u16;
                                 let wstr_ptr = *wstr_ptr_addr;
                                 if !wstr_ptr.is_null() {

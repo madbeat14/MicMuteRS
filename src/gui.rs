@@ -6,7 +6,7 @@ use std::thread;
 // Use windows-sys for the transparency fix to avoid version hell with eframe
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     FindWindowW, GetWindowLongW, SetWindowLongW, SetLayeredWindowAttributes,
-    GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TRANSPARENT, LWA_COLORKEY, LWA_ALPHA,
+    GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TRANSPARENT, LWA_COLORKEY,
     SetWindowPos, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SWP_FRAMECHANGED
 };
 use windows_sys::Win32::UI::Controls::MARGINS;
@@ -419,7 +419,7 @@ impl eframe::App for MicMuteApp {
         } else {
             // Hide the root window if overlay is disabled
             ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
-            egui::CentralPanel::default().frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT)).show(ctx, |ui| { });
+            egui::CentralPanel::default().frame(egui::Frame::none().fill(egui::Color32::TRANSPARENT)).show(ctx, |_| { });
         }
 
         // Settings Viewport

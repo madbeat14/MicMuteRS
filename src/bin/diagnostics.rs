@@ -1,16 +1,20 @@
-use windows::core::{Result, PCWSTR};
-use windows::Win32::Media::Audio::{eCapture, eRender, eConsole, IMMDeviceEnumerator, MMDeviceEnumerator, DEVICE_STATE_ACTIVE, DEVICE_STATE_UNPLUGGED, DEVICE_STATE_DISABLED};
-use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED, STGM_READ};
-use windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume;
 use windows::Win32::Devices::FunctionDiscovery::PKEY_Device_FriendlyName;
-use std::ffi::c_void;
+use windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume;
+use windows::Win32::Media::Audio::{
+    DEVICE_STATE_ACTIVE, IMMDeviceEnumerator, MMDeviceEnumerator, eCapture, eRender,
+};
+use windows::Win32::System::Com::{
+    CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, STGM_READ,
+};
+use windows::core::Result;
 
 fn main() -> Result<()> {
     unsafe {
         let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
-        
-        let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
-        
+
+        let enumerator: IMMDeviceEnumerator =
+            CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
+
         // Let's use eCapture (1) and eRender (0)
         println!("=== CAPTURE DEVICES ===");
         let capture_collection = enumerator.EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE)?;
@@ -27,7 +31,7 @@ fn main() -> Result<()> {
                 }
             }
         }
-        
+
         println!("\n=== RENDER DEVICES ===");
         let render_collection = enumerator.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE)?;
         let count = render_collection.GetCount()?;

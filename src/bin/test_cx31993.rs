@@ -1,11 +1,14 @@
-use windows::Win32::Media::Audio::{eCapture, eRender, IMMDeviceEnumerator, MMDeviceEnumerator, DEVICE_STATE_ACTIVE};
-use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED, STGM_READ};
 use windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume;
+use windows::Win32::Media::Audio::{IMMDeviceEnumerator, MMDeviceEnumerator};
+use windows::Win32::System::Com::{
+    CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx,
+};
 
 fn main() {
     unsafe {
         CoInitializeEx(None, COINIT_MULTITHREADED).unwrap();
-        let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL).unwrap();
+        let enumerator: IMMDeviceEnumerator =
+            CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL).unwrap();
 
         // Get the specific devices based on the diagnostics we saw earlier
         let cap_id = "{0.0.1.00000000}.{b6eff619-2ed0-4ec1-9c18-bbc33a802301}";
@@ -14,8 +17,12 @@ fn main() {
         let cap_wide: Vec<u16> = cap_id.encode_utf16().chain(std::iter::once(0)).collect();
         let ren_wide: Vec<u16> = ren_id.encode_utf16().chain(std::iter::once(0)).collect();
 
-        let cap_dev = enumerator.GetDevice(windows::core::PCWSTR(cap_wide.as_ptr())).unwrap();
-        let ren_dev = enumerator.GetDevice(windows::core::PCWSTR(ren_wide.as_ptr())).unwrap();
+        let cap_dev = enumerator
+            .GetDevice(windows::core::PCWSTR(cap_wide.as_ptr()))
+            .unwrap();
+        let ren_dev = enumerator
+            .GetDevice(windows::core::PCWSTR(ren_wide.as_ptr()))
+            .unwrap();
 
         let cap_vol: IAudioEndpointVolume = cap_dev.Activate(CLSCTX_ALL, None).unwrap();
         let ren_vol: IAudioEndpointVolume = ren_dev.Activate(CLSCTX_ALL, None).unwrap();
