@@ -1,5 +1,6 @@
 /target
 /src-tauri/target
+/target-tauri
 .tauri-build
 error.log
 build_output.txt
